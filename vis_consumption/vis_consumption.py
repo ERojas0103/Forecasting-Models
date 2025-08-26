@@ -4,10 +4,10 @@ import seaborn as sns
 import matplotlib.dates as mdates
 
 
-def generar_visualizacion_total(nombre_archivo_csv: str):
+def generar_scatterplot_media(nombre_archivo_csv: str):
     """
-    Genera y guarda una visualización enfocada únicamente en la Potencia Total
-    (mínima, media y máxima) a partir del archivo PotenciaActiva.csv.
+    Genera un scatterplot sin título y con fuentes agrandadas, mostrando
+    únicamente la Potencia Total Media del archivo PotenciaActiva.csv.
 
     Args:
         nombre_archivo_csv (str): La ruta al archivo CSV.
@@ -22,46 +22,33 @@ def generar_visualizacion_total(nombre_archivo_csv: str):
         df['datetime'] = pd.to_datetime(df['Fecha'] + ' ' + df['Hora'], format='%d/%m/%Y %H:%M:%S')
         df.set_index('datetime', inplace=True)
 
+        # Asegurarse de que las columnas de potencia son numéricas
         cols_potencia = [col for col in df.columns if 'Potencia' in col]
         for col in cols_potencia:
             df[col] = pd.to_numeric(df[col], errors='coerce')
         df.dropna(subset=cols_potencia, inplace=True)
 
-        print("Datos cargados. Generando gráfico de Potencia Total...")
+        print("Datos cargados. Generando scatterplot de Potencia Total Media...")
 
         # --- CREACIÓN DE LA VISUALIZACIÓN ---
         sns.set_theme(style="whitegrid")
+        fig, ax = plt.subplots(figsize=(14, 8))
 
-        # Crear una figura con un solo gráfico. Ajustamos el tamaño.
-        fig, ax = plt.subplots(figsize=(14, 7))
+        # --- CAMBIO: Se grafica únicamente la Potencia Total Media ---
+        ax.scatter(df.index, df['Potencia Total Med'], label='Potencia Total Media', s=15, alpha=0.7,
+                   color='dodgerblue')
 
-        # Título principal
-        fig.suptitle('Análisis de la Potencia Activa Total', fontsize=18, weight='bold')
-
-        # Graficar la línea de Potencia Media
-        ax.plot(df.index, df['Potencia Total Med'], color='royalblue', label='Potencia Total Media', linewidth=2)
-
-        # Añadir el área sombreada para el rango Min-Max
-        ax.fill_between(
-            df.index,
-            df['Potencia Total Min'],
-            df['Potencia Total Max'],
-            color='royalblue',
-            alpha=0.2,
-            label='Rango Potencia Total (Mín-Máx)'
-        )
+        # Aumento del tamaño de las fuentes
+        ax.set_ylabel('Potencia (W)', fontsize=18, weight='bold')
+        ax.set_xlabel('Fecha', fontsize=18, weight='bold')
+        ax.legend(fontsize=16)
+        ax.tick_params(axis='both', which='major', labelsize=14)
 
         # --- AJUSTES DEL GRÁFICO Y GUARDADO ---
-        ax.set_ylabel('Potencia (W)', fontsize=12, weight='bold')
-        ax.set_xlabel('Fecha', fontsize=12, weight='bold')
-        ax.legend()
         ax.grid(True, which='both', linestyle='--', linewidth=0.5)
-
-        # Mejorar el formato de las fechas en el eje X
         ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%b-%Y'))
         plt.xticks(rotation=45, ha='right')
-
-        plt.tight_layout(rect=[0, 0, 1, 0.95])
+        plt.tight_layout()
 
         nombre_archivo_salida = 'grafico_potencia_total.svg'
         plt.savefig(nombre_archivo_salida, format='svg', bbox_inches='tight')
@@ -76,4 +63,4 @@ def generar_visualizacion_total(nombre_archivo_csv: str):
 
 if __name__ == '__main__':
     archivo_de_datos = 'PotenciaActiva.csv'
-    generar_visualizacion_total(archivo_de_datos)
+    generar_scatterplot_media(archivo_de_datos)
