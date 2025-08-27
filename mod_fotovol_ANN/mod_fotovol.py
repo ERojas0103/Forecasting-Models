@@ -90,11 +90,6 @@ X_test_scaled = scaler.transform(X_test)
 
 print("Entrenando el modelo de Red Neuronal Artificial (ANN)...")
 # Inicializa el regresor de Perceptrón Multicapa (ANN)
-# hidden_layer_sizes: Define la arquitectura (dos capas ocultas con 64 y 32 neuronas)
-# activation: 'relu' es una función de activación común y eficiente
-# solver: 'adam' es un optimizador robusto
-# max_iter: Número máximo de iteraciones para el entrenamiento
-# random_state: Para reproducibilidad de los resultados
 ann_model = MLPRegressor(
     hidden_layer_sizes=(64, 32),
     activation='relu',
@@ -127,6 +122,11 @@ print("----------------------------------------\n")
 
 print("Generando gráfico de comparación...")
 plt.style.use('seaborn-v0_8-whitegrid') # Estilo de gráfico
+
+# --- CAMBIOS APLICADOS ---
+# Establecemos el tamaño de fuente global para la figura
+plt.rcParams.update({'font.size': 20})
+
 fig, ax = plt.subplots(figsize=(18, 8))
 
 # Grafica los datos reales
@@ -136,10 +136,12 @@ ax.plot(y_test.index, y_test.values, label='Producción Real', color='dodgerblue
 ax.plot(y_test.index, y_pred, label='Producción Predicha (ANN)', color='orangered', linestyle='--', alpha=0.9)
 
 # Configuración del gráfico
-ax.set_title('Comparación de Producción Fotovoltaica: Real vs. Predicha', fontsize=16, weight='bold')
-ax.set_xlabel('Fecha y Hora', fontsize=12)
-ax.set_ylabel('Producción Fotovoltaica (Wh)', fontsize=12)
-ax.legend(fontsize=11)
+# Se eliminó la línea ax.set_title()
+
+# Ya no se necesita especificar fontsize porque se estableció globalmente
+ax.set_xlabel('Fecha y Hora')
+ax.set_ylabel('Producción Fotovoltaica (Wh)')
+ax.legend()
 ax.grid(True, which='both', linestyle='--', linewidth=0.5)
 plt.xticks(rotation=45)
 plt.tight_layout() # Ajusta el gráfico para que todo encaje bien

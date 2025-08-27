@@ -94,8 +94,14 @@ def main():
     # 8. Visualizar los resultados con fechas en el eje X
     print("Generando gráfico de resultados con el nuevo estilo...")
     plt.style.use('seaborn-v0_8-whitegrid')
+
+    # --- CAMBIOS APLICADOS ---
+    # Establecemos el tamaño de fuente global para la figura
+    plt.rcParams.update({'font.size': 20})
+
     plt.figure(figsize=(15, 8))
-    plt.title('Predicción vs. Valor Real (Consumo vs. Tiempo)', fontsize=16)
+
+    # Se eliminó la línea plt.title()
 
     # --- CAMBIOS DE ESTILO AQUÍ ---
     # Puntos azules para los valores reales con opacidad del 40%
@@ -103,8 +109,9 @@ def main():
     # Puntos naranjas para las predicciones con opacidad del 40%
     plt.scatter(fechas_verification, predicciones, color='orange', label='Predicción del Modelo', alpha=0.4, s=30)
 
-    plt.xlabel('Fecha', fontsize=12)
-    plt.ylabel('Potencia Total Media (W)', fontsize=12)
+    # Ya no se necesita especificar fontsize porque se estableció globalmente
+    plt.xlabel('Fecha')
+    plt.ylabel('Potencia Total Media (W)')
     plt.legend()
 
     # Formatear el eje de fechas para mejor legibilidad

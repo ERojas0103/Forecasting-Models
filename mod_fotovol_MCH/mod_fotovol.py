@@ -81,10 +81,6 @@ X_test_scaled = scaler.transform(X_test)
 
 print("Entrenando el modelo de Ensamble (Gradient Boosting Regressor)...")
 # Inicializa el modelo de Gradient Boosting
-# n_estimators: El número de árboles de decisión a construir en secuencia.
-# learning_rate: Controla cuánto contribuye cada árbol a la predicción final.
-# max_depth: La profundidad máxima de cada árbol individual, para controlar la complejidad.
-# random_state: Para que los resultados sean reproducibles.
 gbr_model = GradientBoostingRegressor(
     n_estimators=200,
     learning_rate=0.1,
@@ -115,6 +111,11 @@ print("----------------------------------------------------------\n")
 
 print("Generando gráfico de comparación...")
 plt.style.use('seaborn-v0_8-whitegrid')
+
+# --- CAMBIOS APLICADOS ---
+# Establecemos el tamaño de fuente global para la figura
+plt.rcParams.update({'font.size': 20})
+
 fig, ax = plt.subplots(figsize=(18, 8))
 
 # Grafica los datos reales
@@ -124,10 +125,12 @@ ax.plot(y_test.index, y_test.values, label='Producción Real', color='dodgerblue
 ax.plot(y_test.index, y_pred, label='Producción Predicha (Gradient Boosting)', color='purple', linestyle='--', alpha=0.9)
 
 # Configuración del gráfico
-ax.set_title('Comparación de Producción FV: Real vs. Predicha (Gradient Boosting)', fontsize=16, weight='bold')
-ax.set_xlabel('Fecha y Hora', fontsize=12)
-ax.set_ylabel('Producción Fotovoltaica (Wh)', fontsize=12)
-ax.legend(fontsize=11)
+# Se eliminó la línea ax.set_title()
+
+# Ya no se necesita especificar fontsize porque se estableció globalmente
+ax.set_xlabel('Fecha y Hora')
+ax.set_ylabel('Producción Fotovoltaica (Wh)')
+ax.legend()
 ax.grid(True, which='both', linestyle='--', linewidth=0.5)
 plt.xticks(rotation=45)
 plt.tight_layout()

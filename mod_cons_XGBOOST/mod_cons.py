@@ -92,16 +92,23 @@ def main():
     # 7. Visualizar los resultados
     print("Generando gráfico de resultados...")
     plt.style.use('seaborn-v0_8-whitegrid')
+
+    # --- CAMBIOS APLICADOS ---
+    # Establecemos el tamaño de fuente global para la figura
+    plt.rcParams.update({'font.size': 20})
+
     plt.figure(figsize=(15, 8))
-    plt.title('Predicción XGBoost (con Contexto Temporal) vs. Valor Real', fontsize=16)
+
+    # Se eliminó la línea plt.title()
 
     fechas_verification = y_verification.index
 
     plt.scatter(fechas_verification, y_verification, color='blue', label='Valor Real', alpha=0.4, s=30)
     plt.scatter(fechas_verification, predicciones, color='orange', label='Predicción del Modelo', alpha=0.4, s=30)
 
-    plt.xlabel('Fecha', fontsize=12)
-    plt.ylabel('Potencia Total Media (W)', fontsize=12)
+    # Ya no se necesita especificar fontsize porque se estableció globalmente
+    plt.xlabel('Fecha')
+    plt.ylabel('Potencia Total Media (W)')
     plt.legend()
 
     ax = plt.gca()

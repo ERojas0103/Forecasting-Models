@@ -1,79 +1,143 @@
 import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.svm import SVR
+from sklearn.metrics import mean_squared_error, r2_score
 import matplotlib.pyplot as plt
-import seaborn as sns
-import matplotlib.dates as mdates
+import os
 
+# --- 1. Carga y Preparación de Datos ---
 
-def generar_visualizacion_total(nombre_archivo_csv: str):
-    """
-    Genera y guarda una visualización enfocada únicamente en la Potencia Total
-    (mínima, media y máxima) a partir del archivo PotenciaActiva.csv.
+print("Iniciando el proceso de predicción con SVM...")
 
-    Args:
-        nombre_archivo_csv (str): La ruta al archivo CSV.
-    """
-    print(f"Cargando datos desde '{nombre_archivo_csv}'...")
+# Define el nombre del archivo de datos
+file_path = 'pv_data.xlsx'
 
-    try:
-        # Cargar los datos especificando el separador
-        df = pd.read_csv(nombre_archivo_csv, sep=';')
+# Comprueba si el archivo existe
+if not os.path.exists(file_path):
+    print(f"Error: El archivo '{file_path}' no se encontró en el directorio.")
+    exit()
 
-        # --- PREPROCESAMIENTO DE DATOS ---
-        df['datetime'] = pd.to_datetime(df['Fecha'] + ' ' + df['Hora'], format='%d/%m/%Y %H:%M:%S')
-        df.set_index('datetime', inplace=True)
+print(f"Cargando datos desde '{file_path}'...")
+# Carga los datos, saltando la fila de unidades y tratando 'n/a' como valores nulos
+try:
+    df = pd.read_excel(file_path, skiprows=[1], na_values='n/a')
+except Exception as e:
+    print(f"Error al leer el archivo Excel: {e}")
+    exit()
 
-        cols_potencia = [col for col in df.columns if 'Potencia' in col]
-        for col in cols_potencia:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-        df.dropna(subset=cols_potencia, inplace=True)
+# Renombra las columnas para un acceso más fácil
+df.columns = [
+    'Timestamp',
+    'PV_Production_Wh',
+    'Irradiation_Wm2',
+    'Ambient_Temp_C',
+    'Module_Temp_C'
+]
 
-        print("Datos cargados. Generando gráfico de Potencia Total...")
+# Convierte la columna 'Timestamp' a formato de fecha y hora
+df['Timestamp'] = pd.to_datetime(df['Timestamp'], format='%d.%m.%Y %H:%M')
 
-        # --- CREACIÓN DE LA VISUALIZACIÓN ---
-        sns.set_theme(style="whitegrid")
+# Establece 'Timestamp' como el índice del DataFrame
+df.set_index('Timestamp', inplace=True)
 
-        # Crear una figura con un solo gráfico. Ajustamos el tamaño.
-        fig, ax = plt.subplots(figsize=(14, 7))
+# --- 2. Filtrado y Limpieza de Datos ---
 
-        # Título principal
-        fig.suptitle('Análisis de la Potencia Activa Total', fontsize=18, weight='bold')
+print("Filtrando los datos para los primeros 5 meses...")
+# Filtra el DataFrame para incluir solo los primeros 5 meses (Enero a Mayo)
+df_filtered = df[df.index.month <= 5]
 
-        # Graficar la línea de Potencia Media
-        ax.plot(df.index, df['Potencia Total Med'], color='royalblue', label='Potencia Total Media', linewidth=2)
+print(f"Datos originales: {df.shape[0]} filas. Datos filtrados (5 meses): {df_filtered.shape[0]} filas.")
 
-        # Añadir el área sombreada para el rango Min-Max
-        ax.fill_between(
-            df.index,
-            df['Potencia Total Min'],
-            df['Potencia Total Max'],
-            color='royalblue',
-            alpha=0.2,
-            label='Rango Potencia Total (Mín-Máx)'
-        )
+# Imputación de datos: Rellena los valores nulos (NaN)
+print("Realizando imputación de datos nulos...")
+df_clean = df_filtered.interpolate(method='linear')
 
-        # --- AJUSTES DEL GRÁFICO Y GUARDADO ---
-        ax.set_ylabel('Potencia (W)', fontsize=12, weight='bold')
-        ax.set_xlabel('Fecha', fontsize=12, weight='bold')
-        ax.legend()
-        ax.grid(True, which='both', linestyle='--', linewidth=0.5)
+# Verificación final de nulos
+if df_clean.isnull().sum().sum() > 0:
+    df_clean.fillna(method='ffill', inplace=True)
+    df_clean.fillna(method='bfill', inplace=True)
 
-        # Mejorar el formato de las fechas en el eje X
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%b-%Y'))
-        plt.xticks(rotation=45, ha='right')
+print("Limpieza de datos completada.")
 
-        plt.tight_layout(rect=[0, 0, 1, 0.95])
+# --- 3. Preparación para el Modelo de Machine Learning ---
 
-        nombre_archivo_salida = 'grafico_potencia_total.svg'
-        plt.savefig(nombre_archivo_salida, format='svg', bbox_inches='tight')
+# Define las variables predictoras (X) y la variable objetivo (y)
+features = ['Irradiation_Wm2', 'Ambient_Temp_C', 'Module_Temp_C']
+target = 'PV_Production_Wh'
 
-        print(f"¡Éxito! El gráfico ha sido guardado como '{nombre_archivo_salida}'")
+X = df_clean[features]
+y = df_clean[target]
 
-    except FileNotFoundError:
-        print(f"Error: No se encontró el archivo '{nombre_archivo_csv}'.")
-    except Exception as e:
-        print(f"Ha ocurrido un error inesperado: {e}")
+# Divide los datos: 80% para entrenamiento, 20% para prueba (sin barajar)
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, shuffle=False)
 
+print(f"Datos de entrenamiento: {X_train.shape[0]} muestras.")
+print(f"Datos de prueba: {X_test.shape[0]} muestras.")
 
-if __name__ == '__main__':
-    archivo_de_datos = 'PotenciaActiva.csv'
-    generar_visualizacion_total(archivo_de_datos)
+# Escala de características: Muy importante para el rendimiento de SVM
+scaler = StandardScaler()
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+
+# --- 4. Entrenamiento del Modelo SVM (Support Vector Machine) ---
+
+print("Entrenando el modelo de Máquinas de Vectores de Soporte (SVM)...")
+# Inicializa el regresor de Vectores de Soporte (SVR)
+# kernel='rbf': El kernel de base radial es una opción excelente para datos no lineales.
+# C: Parámetro de regularización.
+# epsilon: Define un margen dentro del cual no se penaliza el error.
+svm_model = SVR(kernel='rbf', C=100, epsilon=0.1)
+
+# Entrena el modelo
+svm_model.fit(X_train_scaled, y_train)
+print("Modelo entrenado exitosamente.")
+
+# --- 5. Realización de Predicciones y Evaluación ---
+
+print("Realizando predicciones en el conjunto de prueba...")
+y_pred = svm_model.predict(X_test_scaled)
+
+# Evaluación del modelo
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print("\n--- Métricas de Rendimiento del Modelo (SVM) ---")
+print(f"Error Cuadrático Medio (MSE): {mse:.2f}")
+print(f"Coeficiente de Determinación (R²): {r2:.2f}")
+print("----------------------------------------------\n")
+
+# --- 6. Visualización de Resultados ---
+
+print("Generando gráfico de comparación...")
+plt.style.use('seaborn-v0_8-whitegrid')
+
+# --- CAMBIOS APLICADOS ---
+# Establecemos el tamaño de fuente global para la figura
+plt.rcParams.update({'font.size': 20})
+
+fig, ax = plt.subplots(figsize=(18, 8))
+
+# Grafica los datos reales
+ax.plot(y_test.index, y_test.values, label='Producción Real', color='dodgerblue', alpha=0.8)
+
+# Grafica los datos predichos
+ax.plot(y_test.index, y_pred, label='Producción Predicha (SVM)', color='green', linestyle='--', alpha=0.9)
+
+# Configuración del gráfico
+# Se eliminó la línea ax.set_title()
+
+# Ya no se necesita especificar fontsize porque se estableció globalmente
+ax.set_xlabel('Fecha y Hora')
+ax.set_ylabel('Producción Fotovoltaica (Wh)')
+ax.legend()
+ax.grid(True, which='both', linestyle='--', linewidth=0.5)
+plt.xticks(rotation=45)
+plt.tight_layout()
+
+# Guarda el gráfico en formato SVG con un nuevo nombre
+output_filename = 'comparacion_produccion_fv_svm.svg'
+plt.savefig(output_filename, format='svg')
+
+print(f"¡Proceso completado! El gráfico se ha guardado como '{output_filename}'.")
