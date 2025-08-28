@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from xgboost import XGBRegressor
 import matplotlib.dates as mdates
+import time  # <--- Importamos la librería de tiempo
 
 # --- CONFIGURACIÓN ---
 NOMBRE_ARCHIVO = 'PotenciaActiva.csv'
@@ -27,19 +28,16 @@ def cargar_y_preparar_datos(filepath, columna_objetivo):
 def crear_caracteristicas_avanzadas(df, columna_objetivo, n_pasados):
     """Crea un dataset con lags y características de tiempo."""
     print("Creando características avanzadas (lags + tiempo)...")
-    # 1. Crear características de tiempo
     df['hora'] = df.index.hour
-    df['dia_semana'] = df.index.dayofweek  # Lunes=0, Domingo=6
+    df['dia_semana'] = df.index.dayofweek
     df['dia_mes'] = df.index.day
     df['mes'] = df.index.month
 
-    # 2. Crear características de lags (valores pasados)
     for i in range(1, n_pasados + 1):
         df[f'lag_{i}'] = df[columna_objetivo].shift(i)
 
     df.dropna(inplace=True)
 
-    # 3. Separar en X (características) y y (objetivo)
     caracteristicas = [col for col in df.columns if col != columna_objetivo]
     X = df[caracteristicas]
     y = df[columna_objetivo]
@@ -49,28 +47,26 @@ def crear_caracteristicas_avanzadas(df, columna_objetivo, n_pasados):
 
 def main():
     """Flujo principal para entrenar y evaluar el modelo avanzado."""
-    # 1. Cargar datos
     df_datos = cargar_y_preparar_datos(NOMBRE_ARCHIVO, COLUMNA_OBJETIVO)
-
-    # 2. Ingeniería de Características
     X, y = crear_caracteristicas_avanzadas(df_datos, COLUMNA_OBJETIVO, N_PASOS_PASADOS)
 
-    # 3. Dividir datos cronológicamente
     punto_division = int(len(X) * PORCENTAJE_ENTRENAMIENTO)
     X_train, X_verification = X.iloc[:punto_division], X.iloc[punto_division:]
     y_train, y_verification = y.iloc[:punto_division], y.iloc[punto_division:]
 
     print(f"Datos divididos: {len(X_train)} para entrenamiento, {len(X_verification)} para verificación.")
 
-    # 4. Construir y entrenar el modelo XGBoost
     print("\nConstruyendo y entrenando el modelo XGBoost...")
     modelo = XGBRegressor(
         n_estimators=1000,
         learning_rate=0.05,
         objective='reg:squarederror',
         n_jobs=-1,
-        early_stopping_rounds=50  # Se detendrá si el error no mejora en 50 rondas
+        early_stopping_rounds=50
     )
+
+    # --- INICIO DEL TEMPORIZADOR ---
+    start_time = time.time()
 
     modelo.fit(
         X_train, y_train,
@@ -78,37 +74,35 @@ def main():
         verbose=False
     )
 
-    # 5. Realizar predicciones
     print("Realizando predicciones...")
     predicciones = modelo.predict(X_verification)
 
-    # 6. Evaluar el modelo
+    # --- FIN DEL TEMPORIZADOR ---
+    end_time = time.time()
+    duration = end_time - start_time
+
     mae = mean_absolute_error(y_verification, predicciones)
     rmse = np.sqrt(mean_squared_error(y_verification, predicciones))
     print("\n--- Evaluación del Modelo XGBoost Avanzado ---")
     print(f"Error Absoluto Medio (MAE): {mae:.2f} W")
     print(f"Raíz del Error Cuadrático Medio (RMSE): {rmse:.2f} W")
 
-    # 7. Visualizar los resultados
-    print("Generando gráfico de resultados...")
+    # Imprimir el tiempo de ejecución
+    print("\n--- Tiempo de Ejecución ---")
+    print(f"Tiempo de Entrenamiento + Predicción: {duration:.2f} segundos")
+
+    print("\nGenerando gráfico de resultados...")
     plt.style.use('seaborn-v0_8-whitegrid')
-
-    # --- CAMBIOS APLICADOS ---
-    # Establecemos el tamaño de fuente global para la figura
-    plt.rcParams.update({'font.size': 20})
-
     plt.figure(figsize=(15, 8))
-
-    # Se eliminó la línea plt.title()
+    plt.title('Predicción XGBoost (con Contexto Temporal) vs. Valor Real', fontsize=16)
 
     fechas_verification = y_verification.index
 
     plt.scatter(fechas_verification, y_verification, color='blue', label='Valor Real', alpha=0.4, s=30)
     plt.scatter(fechas_verification, predicciones, color='orange', label='Predicción del Modelo', alpha=0.4, s=30)
 
-    # Ya no se necesita especificar fontsize porque se estableció globalmente
-    plt.xlabel('Fecha')
-    plt.ylabel('Potencia Total Media (W)')
+    plt.xlabel('Fecha', fontsize=12)
+    plt.ylabel('Potencia Total Media (W)', fontsize=12)
     plt.legend()
 
     ax = plt.gca()
