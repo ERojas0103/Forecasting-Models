@@ -95,15 +95,18 @@ def main():
 
     print("\nGenerando gráfico de resultados...")
     plt.style.use('seaborn-v0_8-whitegrid')
-    plt.figure(figsize=(15, 8))
-    plt.title('Predicción ANN (Scikit-learn) vs. Valor Real', fontsize=16)
+    plt.figure(figsize=(20, 8))
+
 
     plt.scatter(fechas_verification, y_verification_reales, color='blue', label='Valor Real', alpha=0.4, s=30)
     plt.scatter(fechas_verification, predicciones, color='orange', label='Predicción del Modelo', alpha=0.4, s=30)
 
-    plt.xlabel('Fecha', fontsize=12)
-    plt.ylabel('Potencia Total Media (W)', fontsize=12)
-    plt.legend()
+    plt.xlabel('Fecha', fontsize=18)
+    plt.ylabel('Potencia Total Media (W)', fontsize=18)
+    plt.legend(fontsize=18)
+
+    plt.tick_params(axis='x', labelsize=18)
+    plt.tick_params(axis='y', labelsize=18)
 
     ax = plt.gca()
     ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%b-%Y'))

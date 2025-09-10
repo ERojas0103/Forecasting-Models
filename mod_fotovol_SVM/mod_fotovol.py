@@ -67,13 +67,17 @@ print("----------------------------------------------\n")
 
 print("Generando gráfico...")
 plt.style.use('seaborn-v0_8-whitegrid')
-fig, ax = plt.subplots(figsize=(18, 8))
+fig, ax = plt.subplots(figsize=(20, 8))
 ax.plot(y_test.index, y_test.values, label='Producción Real', color='dodgerblue', alpha=0.8)
 ax.plot(y_test.index, y_pred, label='Producción Predicha (SVR)', color='green', linestyle='--', alpha=0.9)
-ax.set_title('Comparación: Real vs. Predicha (SVR)', fontsize=16)
-ax.set_xlabel('Fecha y Hora', fontsize=12)
-ax.set_ylabel('Producción Fotovoltaica (Wh)', fontsize=12)
-ax.legend()
+
+ax.set_xlabel('Fecha y Hora', fontsize=20)
+ax.set_ylabel('Producción Fotovoltaica (Wh)', fontsize=20)
+ax.legend(fontsize=20)
+
+plt.tick_params(axis='x', labelsize=20)
+plt.tick_params(axis='y', labelsize=20)
+
 plt.tight_layout()
 output_filename = 'comparacion_produccion_fv_svr.svg'
 plt.savefig(output_filename, format='svg')

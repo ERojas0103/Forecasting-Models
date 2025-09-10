@@ -32,7 +32,7 @@ def generar_scatterplot_media(nombre_archivo_csv: str):
 
         # --- CREACIÓN DE LA VISUALIZACIÓN ---
         sns.set_theme(style="whitegrid")
-        fig, ax = plt.subplots(figsize=(14, 8))
+        fig, ax = plt.subplots(figsize=(20, 8))
 
         # --- CAMBIO: Se grafica únicamente la Potencia Total Media ---
         ax.scatter(df.index, df['Potencia Total Med'], label='Potencia Total Media', s=15, alpha=0.7,
@@ -41,8 +41,8 @@ def generar_scatterplot_media(nombre_archivo_csv: str):
         # Aumento del tamaño de las fuentes
         ax.set_ylabel('Potencia (W)', fontsize=18, weight='bold')
         ax.set_xlabel('Fecha', fontsize=18, weight='bold')
-        ax.legend(fontsize=16)
-        ax.tick_params(axis='both', which='major', labelsize=14)
+
+        ax.tick_params(axis='both', which='major', labelsize=18)
 
         # --- AJUSTES DEL GRÁFICO Y GUARDADO ---
         ax.grid(True, which='both', linestyle='--', linewidth=0.5)
