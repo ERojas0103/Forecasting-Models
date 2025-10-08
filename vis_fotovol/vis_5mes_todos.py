@@ -49,7 +49,7 @@ fig, axes = plt.subplots(4, 1, figsize=(20, 16), sharex=True)
 
 # --- Gráfico 1: Producción Fotovoltaica ---
 axes[0].plot(df_filtered.index, df_filtered['PV_Production_Wh'], color='steelblue', linewidth=1)
-axes[0].set_ylabel("PVP (Wh)", fontsize=font_size)
+axes[0].set_ylabel("Photovoltaic Production (Wh)", fontsize=font_size)
 axes[0].grid(True, linestyle='--', alpha=0.6)
 
 # --- Gráfico 2: Irradiación Solar ---

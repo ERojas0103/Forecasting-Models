@@ -35,10 +35,10 @@ else:
     matriz_corr = df_seleccion.corr(method='pearson')
 
     # Configurar la figura para la visualización.
-    plt.figure(figsize=(13, 13))
+    plt.figure(figsize=(12, 10))
 
     # Crear el mapa de calor con seaborn y los ajustes de fuente.
-    sns.heatmap(
+    ax = sns.heatmap(
         matriz_corr,
         annot=True,
         annot_kws={'size': 20},  # Tamaño de fuente para los números
@@ -49,6 +49,11 @@ else:
         vmax=1
     )
 
+    # *** LÍNEAS MODIFICADAS ***
+    # Ajustar el tamaño de fuente para la barra de color.
+    cbar = ax.collections[0].colorbar
+    cbar.ax.tick_params(labelsize=20)
+
     # Ajustar el tamaño de fuente para las etiquetas de los ejes X e Y.
     plt.xticks(fontsize=20)
     plt.yticks(fontsize=20)
@@ -57,12 +62,8 @@ else:
     plt.tight_layout()
 
     # --- Bloque 4: Guardar el Gráfico ---
-    # Se define el nombre del archivo con la nueva extensión.
     output_filename = 'mapa_correlacion_pearson_ajustado.svg'
-
-    # Se guarda la figura especificando el formato SVG.
     plt.savefig(output_filename, format='svg')
-
     print(f"Proceso finalizado. El mapa de calor ha sido guardado como '{output_filename}'.")
 
     # Opcional: mostrar el gráfico si se ejecuta interactivamente.

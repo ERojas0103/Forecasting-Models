@@ -1,66 +1,121 @@
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sns
 import matplotlib.dates as mdates
+import seaborn as sns
+
+# --- CONFIGURACIÓN ---
+NOMBRE_ARCHIVO = 'PotenciaActiva.csv'
 
 
-def generar_scatterplot_media(nombre_archivo_csv: str):
+def cargar_y_preparar_datos(filepath):
+    """Carga y prepara los datos desde el archivo CSV."""
+    print(f"Cargando y preparando datos desde '{filepath}'...")
+    df = pd.read_csv(filepath, sep=';')
+
+    df['datetime'] = pd.to_datetime(df['Fecha'] + ' ' + df['Hora'], format='%d/%m/%Y %H:%M:%S')
+    df.set_index('datetime', inplace=True)
+
+    cols_potencia = [col for col in df.columns if 'Potencia' in col]
+    for col in cols_potencia:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    df.dropna(subset=cols_potencia, inplace=True)
+    print("Datos cargados correctamente.")
+    return df
+
+
+def graficar_perfil_diario_lineplot(df, fecha, nombre_archivo):
     """
-    Genera un scatterplot sin título y con fuentes agrandadas, mostrando
-    únicamente la Potencia Total Media del archivo PotenciaActiva.csv.
-
-    Args:
-        nombre_archivo_csv (str): La ruta al archivo CSV.
+    Genera un gráfico de líneas (lineplot) mostrando la potencia media, mínima y máxima.
     """
-    print(f"Cargando datos desde '{nombre_archivo_csv}'...")
 
-    try:
-        # Cargar los datos especificando el separador
-        df = pd.read_csv(nombre_archivo_csv, sep=';')
+    datos_dia = df[df.index.date == fecha.date()].copy()
 
-        # --- PREPROCESAMIENTO DE DATOS ---
-        df['datetime'] = pd.to_datetime(df['Fecha'] + ' ' + df['Hora'], format='%d/%m/%Y %H:%M:%S')
-        df.set_index('datetime', inplace=True)
+    if datos_dia.empty:
+        print(f"No se encontraron datos para la fecha {fecha.date()}. No se generará la gráfica.")
+        return
 
-        # Asegurarse de que las columnas de potencia son numéricas
-        cols_potencia = [col for col in df.columns if 'Potencia' in col]
-        for col in cols_potencia:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
-        df.dropna(subset=cols_potencia, inplace=True)
+    print(f"Generando lineplot para el día {fecha.date()}...")
 
-        print("Datos cargados. Generando scatterplot de Potencia Total Media...")
+    # Remuestreo a 1 minuto para regularizar el índice de tiempo y evitar artefactos
+    tasa_remuestreo = '1T'
+    datos_resampled = datos_dia.resample(tasa_remuestreo).agg({
+        'Potencia Total Med': 'mean',
+        'Potencia Total Min': 'min',
+        'Potencia Total Max': 'max'
+    })
+    datos_resampled.dropna(inplace=True)
 
-        # --- CREACIÓN DE LA VISUALIZACIÓN ---
-        sns.set_theme(style="whitegrid")
-        fig, ax = plt.subplots(figsize=(20, 8))
+    # --- GRAFICACIÓN CON LÍNEAS ---
+    plt.style.use('seaborn-v0_8-whitegrid')
+    fig, ax = plt.subplots(figsize=(20, 7))
 
-        # --- CAMBIO: Se grafica únicamente la Potencia Total Media ---
-        ax.scatter(df.index, df['Potencia Total Med'], label='Potencia Total Media', s=15, alpha=0.7,
-                   color='dodgerblue')
+    # Línea principal para la Potencia Media
+    ax.plot(datos_resampled.index, datos_resampled['Potencia Total Med'],
+            color='dodgerblue',
+            label='Potencia Media',
+            linewidth=2.5)
 
-        # Aumento del tamaño de las fuentes
-        ax.set_ylabel('Potencia (W)', fontsize=18, weight='bold')
-        ax.set_xlabel('Fecha', fontsize=18, weight='bold')
+    # Líneas para el rango de variabilidad (Mínima y Máxima)
+    ax.plot(datos_resampled.index, datos_resampled['Potencia Total Min'],
+            color='skyblue',
+            label='Potencia Mínima/Máxima',
+            linewidth=1.5,
+            linestyle='--')
 
-        ax.tick_params(axis='both', which='major', labelsize=18)
+    ax.plot(datos_resampled.index, datos_resampled['Potencia Total Max'],
+            color='skyblue',
+            linewidth=1.5,
+            linestyle='--')
 
-        # --- AJUSTES DEL GRÁFICO Y GUARDADO ---
-        ax.grid(True, which='both', linestyle='--', linewidth=0.5)
-        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d-%b-%Y'))
-        plt.xticks(rotation=45, ha='right')
-        plt.tight_layout()
+    # Configuración de estilo
+    ax.set_ylabel('Potencia (W)', fontsize=18)
+    ax.set_xlabel('Hora del Día', fontsize=18)
+    ax.legend(fontsize=18)
 
-        nombre_archivo_salida = 'grafico_potencia_total.svg'
-        plt.savefig(nombre_archivo_salida, format='svg', bbox_inches='tight')
+    ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+    ax.tick_params(axis='both', which='major', labelsize=14)
+    plt.xticks(rotation=45, ha='right')
 
-        print(f"¡Éxito! El gráfico ha sido guardado como '{nombre_archivo_salida}'")
+    ax.set_ylim(bottom=0)
 
-    except FileNotFoundError:
-        print(f"Error: No se encontró el archivo '{nombre_archivo_csv}'.")
-    except Exception as e:
-        print(f"Ha ocurrido un error inesperado: {e}")
+    plt.tight_layout()
+    plt.savefig(nombre_archivo, format='svg', bbox_inches='tight')
+    print(f"Gráfica guardada como '{nombre_archivo}'")
+    plt.close()
+
+
+def main():
+    """Flujo principal del análisis."""
+    df = cargar_y_preparar_datos(NOMBRE_ARCHIVO)
+
+    consumo_diario = df['Potencia Total Med'].resample('D').sum()
+    registros_diarios = df['Potencia Total Med'].resample('D').count()
+    consumo_diario_filtrado = consumo_diario[registros_diarios > 60 * 12]
+
+    fecha_mayor_actividad = consumo_diario_filtrado.idxmax()
+    fecha_menor_actividad = consumo_diario_filtrado.idxmin()
+
+    print("\n--- Análisis de Actividad ---")
+    print(f"Día de MAYOR actividad identificado: {fecha_mayor_actividad.date()}")
+    print(f"Día de MENOR actividad identificado: {fecha_menor_actividad.date()}")
+    print("-----------------------------\n")
+
+    # Generar la gráfica para el día de mayor actividad
+    graficar_perfil_diario_lineplot(
+        df=df,
+        fecha=fecha_mayor_actividad,
+        nombre_archivo='perfil_mayor_actividad_lineplot.svg'
+    )
+
+    # Generar la gráfica para el día de menor actividad
+    graficar_perfil_diario_lineplot(
+        df=df,
+        fecha=fecha_menor_actividad,
+        nombre_archivo='perfil_menor_actividad_lineplot.svg'
+    )
 
 
 if __name__ == '__main__':
-    archivo_de_datos = 'PotenciaActiva.csv'
-    generar_scatterplot_media(archivo_de_datos)
+    main()
